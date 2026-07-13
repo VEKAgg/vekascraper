@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from typing import List
 
 
 def get_env(key: str, default: str | None = None) -> str:

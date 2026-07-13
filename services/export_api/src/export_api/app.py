@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import logging
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
 
 from export_api.config import APIConfig
 from export_api.routers import health, jobs
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from shared.storage.paths import ensure_dirs
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ def create_app(config: APIConfig) -> FastAPI:
     )
 
     app.state.config = config
-    app.state.paths = ensure_dirs()
+    app.state.paths = ensure_dirs(root=Path(config.data_root))
 
     app.add_middleware(
         CORSMiddleware,

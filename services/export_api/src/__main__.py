@@ -1,7 +1,6 @@
 import sys
 
 import uvicorn
-
 from export_api.app import create_app
 from export_api.config import APIConfig
 

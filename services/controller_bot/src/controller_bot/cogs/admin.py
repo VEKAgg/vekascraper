@@ -4,9 +4,8 @@ import logging
 
 import discord
 import httpx
-from discord.ext import commands
-
 from controller_bot.config import BotConfig
+from discord.ext import commands
 
 logger = logging.getLogger(__name__)
 

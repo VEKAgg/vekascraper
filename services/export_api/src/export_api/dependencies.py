@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from fastapi import Depends, HTTPException, Header, Request, status
-
 from export_api.config import APIConfig
+from fastapi import Depends, Header, HTTPException, Request, status
 
 
 def get_config_from_app(request: Request) -> APIConfig:

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import json
+import os
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List
 
 from shared.models.job import Job, JobState, JobType
 from shared.storage.paths import get_data_root
@@ -46,17 +45,17 @@ class JobStore:
 
     def _write(self, job: Job) -> None:
         path = self._path(job.job_id)
-        data = job.model_dump_json(indent=2, default=str)
+        data = job.model_dump_json(indent=2)
         fd, tmp = tempfile.mkstemp(dir=str(self._jobs_dir), suffix=".tmp")
         try:
             with open(fd, "w", encoding="utf-8") as f:
                 f.write(data)
-            Path(tmp).rename(path)
+            os.replace(tmp, str(path))
         except Exception:
             Path(tmp).unlink(missing_ok=True)
             raise
 
-    def list_all(self) -> List[Job]:
+    def list_all(self) -> list[Job]:
         jobs: list[Job] = []
         for p in sorted(self._jobs_dir.glob("*.json")):
             try:
@@ -65,10 +64,10 @@ class JobStore:
                 continue
         return jobs
 
-    def list_by_state(self, *states: JobState) -> List[Job]:
+    def list_by_state(self, *states: JobState) -> list[Job]:
         return [j for j in self.list_all() if j.state in states]
 
-    def list_by_type(self, type: JobType) -> List[Job]:
+    def list_by_type(self, type: JobType) -> list[Job]:
         return [j for j in self.list_all() if j.type == type]
 
     def claim_next(self, worker_type: str) -> Job | None:

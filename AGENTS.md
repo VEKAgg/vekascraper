@@ -1,48 +1,62 @@
 # AGENTS.md — Instructions for coding agents
 
-## Golden rules
+## Architecture constraints
 
-1. **Preserve the separation.** The bot never performs extraction. The API never runs extraction. Workers never talk to Discord as a bot. These are hard boundaries.
+- **Bot never extracts.** The controller-bot only routes commands to the API. Extraction lives in workers.
+- **Workers never talk to Discord as a bot.** Workers use `DISCORD_USER_TOKEN` (not bot token). Bot uses `DISCORD_BOT_TOKEN` (not user token).
+- **API validates via `X-API-Key` only.** It has no Discord token at all. `/health` is the sole unauthenticated endpoint.
+- **File-backed v1.** No database, no message broker, no web UI. The filesystem under `/data/` (jobs/, logs/, exports/, manifests/, temp/) is the source of truth.
+- **Copycord is future failover only.** Do not implement it. Leave commented compose entries as placeholders.
+- **All secrets in env vars only.** Fail fast at startup if a required env var is missing.
+- **Half-implemented unsafe features → `# TODO(vekascraper):` marker.** Don't leave untested security-sensitive code.
 
-2. **No extraction in the bot.** If you need to add a new extraction type, add a new worker service and a new API endpoint. Do not add extraction logic to the controller bot.
+## Developer commands
 
-3. **Keep v1 file-backed and simple.** Do not introduce a database, message broker, or web UI unless explicitly requested. The file-backed store is intentional.
+```
+pip install -e shared/  # install shared first, then services
+pip install -e services/export_api/ -e services/controller_bot/ -e services/member_worker/ -e services/message_worker/
 
-4. **Document every structural change.** If you add a new service, endpoint, or job type, update the relevant docs and add a note to DECISIONS.md.
+make lint       # ruff check services/ shared/ scripts/
+make typecheck  # mypy services/ shared/ --pretty
+make test       # pytest tests/ shared/src/shared/ services/*/tests/ -v --cov
+make inspect JOB_ID=JOB-20260713-abc12  # cat a job file
 
-5. **Update docs when endpoints or commands change.** ARCHITECTURE.md, JOBS.md, and any relevant service docs must be kept in sync.
+pre-commit run --all-files  # ruff, ruff-format, trailing-whitespace, etc.
 
-6. **Prefer boring, maintainable code.** Favor standard library, simple patterns, and explicit code over clever abstractions. A function that does one thing with readable variable names is the goal.
+# Run individually (from repo root, after editable install):
+python -m export_api        # uvicorn on 0.0.0.0:8080
+python -m controller_bot    # discord.py bot
+python -m member_worker     # polling worker (members)
+python -m message_worker    # polling worker (messages)
+```
 
-7. **No database or frontend without explicit request.** Both are planned for future phases. Do not pre-emptively add them.
+All services need `.env` (see `.env.example`). Commands in `CONTRIBUTING.md` (`ruff check .`, `mypy .`) are slightly broader than Makefile targets — prefer Makefile targets.
 
-8. **Copycord is future failover only.** Do not implement Copycord. Leave room for it (commented compose service, documented extension points) but do not write Copycord integration code.
+## Known quirks
 
-9. **All secrets in env vars only.** Never hardcode a token, API key, or credential. Validate that env vars are loaded at startup and fail fast if they are missing.
+- **23 tests exist** in `tests/` (test_idgen, test_job_store, test_jobs_router). Pytest is configured in `pyproject.toml`.
+- **`.dockerignore` exists.** Excludes `.git/`, `.venv/`, `data/`, `__pycache__/` from Docker build context.
+- **Services communicate by HTTP (bot→API) and file polling (worker→/data/jobs/).** Workers claim jobs via atomic rename (`os.replace`).
+- **API rejects duplicate guild jobs.** You cannot queue any job for a guild that has one QUEUED, RUNNING, or CANCELLING.
+- **`/extract both` order:** MESSAGES first (QUEUED), MEMBERS second (stays CREATED). Chained: MEMBERS gets QUEUED when MESSAGES completes.
+- **Job ID format:** `JOB-YYYYMMDD-XXXXX` (sortable, human-readable).
+- **`shared/` is a pip-installable package.** All services depend on it via editable install (`-e`).
+- **API endpoints:** 7 + health + logs. `GET /jobs/{job_id}/logs` returns parsed JSON-lines.
 
-10. **Add TODO markers instead of half-implementing unsafe features.** If a feature would require security review, testing, or a design decision you are not equipped to make, leave a `# TODO(vekascraper):` comment and move on.
+## Conventions
 
-## Code conventions
-
-- Use type hints everywhere sensible (`__init__` files are exempt)
-- Prefer Pydantic v2 models for data validation
-- Use `pathlib.Path` for filesystem operations
-- Use `structlog` or `logging` with structured formatting
-- Keep functions under 40 lines unless unavoidable
-- One class per file unless they are tightly coupled
-- Module names are lowercase with underscores
-- Test files mirror source layout with `test_` prefix
+- Type hints everywhere (exempt `__init__.py`)
+- Pydantic v2 models, `pathlib.Path` for filesystem ops
+- Ruff: line-length=100, double quotes
+- Mypy: strict mode
+- Logging with `import logging` (no structlog used yet)
 
 ## Pre-submit checklist
 
-Before considering a change complete:
-
-- [ ] Run `ruff check` — no new lint errors
-- [ ] Run `mypy` — no new type errors
-- [ ] Existing tests pass
-- [ ] New code has tests for critical paths (state transitions, validation, edge cases)
+- [ ] `make lint` — no new ruff errors
+- [ ] `make typecheck` — no new mypy errors
+- [ ] `make test` — all tests pass (write tests for new code)
 - [ ] Docs updated if endpoints, commands, or architecture changed
-- [ ] No tokens or secrets in code
 - [ ] `compose.yaml` updated if new service added
 - [ ] `.env.example` updated if new env var added
-- [ ] AGENTS.md is not stale — rules should still hold
+- [ ] AGENTS.md is still accurate

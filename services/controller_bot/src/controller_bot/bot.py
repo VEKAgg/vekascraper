@@ -3,10 +3,9 @@ from __future__ import annotations
 import logging
 
 import discord
-from discord.ext import commands
-
-from controller_bot.config import BotConfig
 from controller_bot.cogs.admin import AdminCog
+from controller_bot.config import BotConfig
+from discord.ext import commands
 
 logger = logging.getLogger(__name__)
 

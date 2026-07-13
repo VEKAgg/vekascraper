@@ -1,6 +1,6 @@
-from shared.models.job import Job, JobState, JobType, JobCreateRequest
+from shared.models.job import Job, JobCreateRequest, JobState, JobType
 from shared.models.manifest import Manifest
-from shared.models.status import StatusResponse, CancelResponse, JobListResponse
+from shared.models.status import CancelResponse, JobListResponse, StatusResponse
 
 __all__ = [
     "Job",

@@ -20,8 +20,9 @@ def get_data_root() -> Path:
     return Path(os.environ.get("DATA_ROOT", "/data")).resolve()
 
 
-def ensure_dirs() -> DataPaths:
-    root = get_data_root()
+def ensure_dirs(root: Path | None = None) -> DataPaths:
+    if root is None:
+        root = get_data_root()
     paths = DataPaths(
         root=root,
         jobs=root / "jobs",

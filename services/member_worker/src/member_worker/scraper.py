@@ -21,6 +21,8 @@ def scrape_members(job: Job, config: WorkerConfig, log: LogWriter) -> dict:
     # The scraper CLI expects:
     #   discord-member-scraper --token <USER_TOKEN> --guild-id <GUILD_ID> --output <DIR>
     # We stub it here for v1 scaffolding.
+    # TODO(vekascraper): Poll store.get(job.job_id).state periodically to
+    # honour CANCELLING signal during long-running scraper execution.
     logger.info("STUB: Would run member scraper for job %s", job.job_id)
 
     result_path = export_dir / "members.json"

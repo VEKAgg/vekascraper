@@ -38,6 +38,22 @@ def run_worker(config: WorkerConfig) -> None:
             time.sleep(config.poll_interval)
 
 
+def _check_cancelled(store: JobStore, job_id: str) -> bool:
+    current = store.get(job_id)
+    return current is not None and current.state == JobState.CANCELLING
+
+
+def _finish_cancelled(job: object, store: JobStore, log_writer: LogWriter) -> None:
+    from shared.models.job import Job as JobModel
+
+    job_obj = store.get(job.job_id) if isinstance(job, JobModel) else job
+    if job_obj is None:
+        return
+    job_obj.transition(JobState.CANCELLED)
+    store.save(job_obj)
+    log_writer.info(job_obj.job_id, "Job cancelled mid-execution")
+
+
 def _execute_job(
     job: object,
     store: JobStore,
@@ -51,11 +67,19 @@ def _execute_job(
     if job_obj is None:
         return
 
+    if _check_cancelled(store, job_obj.job_id):
+        _finish_cancelled(job_obj, store, log_writer)
+        return
+
     started_at = datetime.now(timezone.utc)
     log_writer.info(job_obj.job_id, "Execution started")
 
     try:
         result = scrape_members(job_obj, config, log_writer)
+
+        if _check_cancelled(store, job_obj.job_id):
+            _finish_cancelled(job_obj, store, log_writer)
+            return
         completed_at = datetime.now(timezone.utc)
         duration = int((completed_at - started_at).total_seconds())
 
