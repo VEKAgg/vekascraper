@@ -1,0 +1,11 @@
+{
+  "job_id": "JOB-20260713-a3f8k",
+  "type": "members",
+  "guild_id": "123456789012345678",
+  "started_at": "2026-07-13T10:30:05Z",
+  "completed_at": "2026-07-13T10:35:12Z",
+  "duration_seconds": 307,
+  "member_count": 142,
+  "export_path": "/data/exports/members/JOB-20260713-a3f8k/",
+  "checksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

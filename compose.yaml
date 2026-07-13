@@ -1,0 +1,98 @@
+name: vekascraper
+
+volumes:
+  data:
+
+services:
+  # ── Internal API ──────────────────────────────────────────
+  export-api:
+    build:
+      context: .
+      dockerfile: services/export_api/Dockerfile
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - data:/data
+    env_file:
+      - .env
+    environment:
+      - DATA_ROOT=/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # ── Control Bot ───────────────────────────────────────────
+  controller-bot:
+    build:
+      context: .
+      dockerfile: services/controller_bot/Dockerfile
+    depends_on:
+      export-api:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - EXPORT_API_URL=http://export-api:8080
+    restart: unless-stopped
+
+  # ── Member Extraction Worker ──────────────────────────────
+  member-worker:
+    build:
+      context: .
+      dockerfile: services/member_worker/Dockerfile
+    volumes:
+      - data:/data
+    depends_on:
+      export-api:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - WORKER_TYPE=members
+      - DATA_ROOT=/data
+      - EXPORT_API_URL=http://export-api:8080
+      - POLL_INTERVAL=10
+    restart: unless-stopped
+
+  # ── Message Extraction Worker (stub — v1 placeholder) ─────
+  # Uncomment when DiscordChatExporter integration is ready.
+  # message-worker:
+  #   build:
+  #     context: .
+  #     dockerfile: services/message_worker/Dockerfile
+  #   volumes:
+  #     - data:/data
+  #   depends_on:
+  #     export-api:
+  #       condition: service_healthy
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - WORKER_TYPE=messages
+  #     - DATA_ROOT=/data
+  #     - EXPORT_API_URL=http://export-api:8080
+  #     - POLL_INTERVAL=10
+  #   restart: unless-stopped
+  #   profiles:
+  #     - message-worker
+
+  # ── Copycord Failover Worker (extension point) ───────────
+  # Add when Copycord integration is required.
+  # copycord-worker:
+  #   build:
+  #     context: .
+  #     dockerfile: services/copycord_worker/Dockerfile
+  #   volumes:
+  #     - data:/data
+  #   depends_on:
+  #     export-api:
+  #       condition: service_healthy
+  #   env_file:
+  #     - .env
+  #   restart: unless-stopped
+  #   profiles:
+  #     - copycord

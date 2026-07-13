@@ -1,0 +1,17 @@
+[project]
+name = "vekascraper-controller-bot"
+version = "0.1.0"
+description = "Discord bot that validates admin commands and submits extraction jobs"
+requires-python = ">=3.12"
+dependencies = [
+    "vekascraper-shared",
+    "discord-py>=2.4",
+    "httpx>=0.28",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

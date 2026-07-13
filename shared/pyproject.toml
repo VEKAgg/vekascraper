@@ -1,0 +1,15 @@
+[project]
+name = "vekascraper-shared"
+version = "0.1.0"
+description = "Shared models, storage, and utilities for vekascraper"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.0",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
