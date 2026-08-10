@@ -26,11 +26,18 @@ PYTHONPATH=$(pwd)/shared/src:$(pwd)/services/member_worker/src \
     python -m member_worker &
 WORKER_PID=$!
 
+# Start message worker
+echo "Starting message-worker"
+PYTHONPATH=$(pwd)/shared/src:$(pwd)/services/message_worker/src \
+    python -m message_worker &
+MESSAGE_WORKER_PID=$!
+
 echo "=== All services started ==="
 echo "API PID:    $API_PID"
 echo "Bot PID:    $BOT_PID"
 echo "Worker PID: $WORKER_PID"
+echo "Msg PID:    $MESSAGE_WORKER_PID"
 echo "Press Ctrl+C to stop all"
 
-trap "kill $API_PID $BOT_PID $WORKER_PID 2>/dev/null; exit" SIGINT SIGTERM
+trap "kill $API_PID $BOT_PID $WORKER_PID $MESSAGE_WORKER_PID 2>/dev/null; exit" SIGINT SIGTERM
 wait

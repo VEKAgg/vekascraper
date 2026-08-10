@@ -62,7 +62,7 @@ services:
       - POLL_INTERVAL=10
     restart: unless-stopped
 
-  # ── Message Extraction Worker (stub — v1 placeholder) ─────
+  # ── Message Extraction Worker ─────────────────────────────
   message-worker:
     build:
       context: .

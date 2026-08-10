@@ -25,6 +25,7 @@ pip install -e shared/
 pip install -e services/export_api/
 pip install -e services/controller_bot/
 pip install -e services/member_worker/
+pip install -e services/message_worker/
 
 echo "=== Bootstrap complete ==="
 echo "Activate: source .venv/bin/activate"
