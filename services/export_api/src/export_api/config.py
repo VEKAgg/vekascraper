@@ -20,3 +20,7 @@ class APIConfig:
             port=get_env_int("API_PORT", 8080),
             data_root=get_env("DATA_ROOT", "/data"),
         )
+
+    def __repr__(self) -> str:
+        masked = f"{self.api_key[:4]}***" if self.api_key else "NOT SET"
+        return f"APIConfig(host={self.host}, port={self.port}, api_key={masked})"

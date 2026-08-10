@@ -20,21 +20,25 @@ class JobState(str, enum.Enum):
 class JobType(str, enum.Enum):
     MESSAGES = "messages"
     MEMBERS = "members"
-    BOTH = "both"
-
-    def to_worker_type(self) -> str:
-        if self == JobType.MESSAGES:
-            return "messages"
-        if self == JobType.MEMBERS:
-            return "members"
-        return "both"
 
 
 class JobCreateRequest(BaseModel):
-    type: JobType
+    type: JobType = JobType.MESSAGES
     guild_id: str
     params: dict[str, Any] = Field(default_factory=dict)
     chain_next: str | None = None
+
+
+_VALID_TRANSITIONS: frozenset[tuple[JobState, JobState]] = frozenset({
+    (JobState.CREATED, JobState.QUEUED),
+    (JobState.CREATED, JobState.CANCELLED),
+    (JobState.QUEUED, JobState.RUNNING),
+    (JobState.QUEUED, JobState.CANCELLED),
+    (JobState.RUNNING, JobState.COMPLETED),
+    (JobState.RUNNING, JobState.FAILED),
+    (JobState.RUNNING, JobState.CANCELLING),
+    (JobState.CANCELLING, JobState.CANCELLED),
+})
 
 
 class Job(BaseModel):
@@ -49,8 +53,7 @@ class Job(BaseModel):
     error: str | None = None
 
     def transition(self, new_state: JobState) -> Job:
-        valid = _valid_transitions.get((self.state, new_state), False)
-        if not valid:
+        if (self.state, new_state) not in _VALID_TRANSITIONS:
             raise ValueError(
                 f"Cannot transition from {self.state.value} to {new_state.value}"
             )
@@ -61,15 +64,3 @@ class Job(BaseModel):
     def touch(self) -> Job:
         self.updated_at = datetime.now(timezone.utc)
         return self
-
-
-_valid_transitions: dict[tuple[JobState, JobState], bool] = {
-    (JobState.CREATED, JobState.QUEUED): True,
-    (JobState.CREATED, JobState.CANCELLED): True,
-    (JobState.QUEUED, JobState.RUNNING): True,
-    (JobState.QUEUED, JobState.CANCELLED): True,
-    (JobState.RUNNING, JobState.COMPLETED): True,
-    (JobState.RUNNING, JobState.FAILED): True,
-    (JobState.RUNNING, JobState.CANCELLING): True,
-    (JobState.CANCELLING, JobState.CANCELLED): True,
-}

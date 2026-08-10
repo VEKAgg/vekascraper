@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 from message_worker.config import WorkerConfig
 from message_worker.exporter import export_messages
-from shared.models.job import JobState
+from shared.models.job import Job, JobState
 from shared.models.manifest import Manifest
 from shared.storage.job_store import JobStore
 from shared.storage.log_writer import LogWriter
@@ -33,8 +33,11 @@ def run_worker(config: WorkerConfig) -> None:
                 _execute_job(job, store, manifest_store, log_writer, config)
             else:
                 time.sleep(config.poll_interval)
+        except KeyboardInterrupt:
+            logger.info("Worker shutting down on interrupt")
+            raise
         except Exception:
-            logger.exception("Worker loop error")
+            logger.exception("Worker loop error — sleeping before retry")
             time.sleep(config.poll_interval)
 
 
@@ -43,10 +46,8 @@ def _check_cancelled(store: JobStore, job_id: str) -> bool:
     return current is not None and current.state == JobState.CANCELLING
 
 
-def _finish_cancelled(job: object, store: JobStore, log_writer: LogWriter) -> None:
-    from shared.models.job import Job as JobModel
-
-    job_obj = store.get(job.job_id) if isinstance(job, JobModel) else job
+def _finish_cancelled(job: Job, store: JobStore, log_writer: LogWriter) -> None:
+    job_obj = store.get(job.job_id)
     if job_obj is None:
         return
     job_obj.transition(JobState.CANCELLED)
@@ -55,15 +56,13 @@ def _finish_cancelled(job: object, store: JobStore, log_writer: LogWriter) -> No
 
 
 def _execute_job(
-    job: object,
+    job: Job,
     store: JobStore,
     manifest_store: ManifestStore,
     log_writer: LogWriter,
     config: WorkerConfig,
 ) -> None:
-    from shared.models.job import Job as JobModel
-
-    job_obj = store.get(job.job_id) if isinstance(job, JobModel) else job
+    job_obj = store.get(job.job_id)
     if job_obj is None:
         return
 
@@ -112,10 +111,8 @@ def _execute_job(
                          extra={"duration_seconds": duration})
 
 
-def _handle_chain(job: object, store: JobStore, log_writer: LogWriter) -> None:
-    from shared.models.job import Job as JobModel
-
-    job_obj = store.get(job.job_id) if isinstance(job, JobModel) else job
+def _handle_chain(job: Job, store: JobStore, log_writer: LogWriter) -> None:
+    job_obj = store.get(job.job_id)
     if job_obj is None or not job_obj.chain_next:
         return
 

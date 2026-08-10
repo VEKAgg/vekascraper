@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 def run_bot() -> None:
     config = BotConfig.from_env()
 
+    if not config.admin_user_ids:
+        logger.warning("ADMIN_DISCORD_USER_IDS is empty — no one can run bot commands!")
+
     intents = discord.Intents.default()
     intents.message_content = False
 
@@ -25,7 +28,4 @@ def run_bot() -> None:
 
     bot.add_cog(AdminCog(bot, config))
 
-    if config.discord_token:
-        bot.run(config.discord_token)
-    else:
-        logger.error("DISCORD_BOT_TOKEN is not set")
+    bot.run(config.discord_token)

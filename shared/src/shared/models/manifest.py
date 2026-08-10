@@ -1,14 +1,14 @@
-from datetime import datetime
+from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import AwareDatetime, BaseModel
 
 
 class Manifest(BaseModel):
     job_id: str
     type: str
     guild_id: str
-    started_at: datetime
-    completed_at: datetime
+    started_at: AwareDatetime
+    completed_at: AwareDatetime
     duration_seconds: int
     member_count: int | None = None
     message_count: int | None = None

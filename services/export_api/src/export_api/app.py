@@ -6,7 +6,6 @@ from pathlib import Path
 from export_api.config import APIConfig
 from export_api.routers import health, jobs
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from shared.storage.paths import ensure_dirs
 
 logger = logging.getLogger(__name__)
@@ -21,13 +20,6 @@ def create_app(config: APIConfig) -> FastAPI:
 
     app.state.config = config
     app.state.paths = ensure_dirs(root=Path(config.data_root))
-
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[],
-        allow_methods=["GET", "POST"],
-        allow_headers=["X-API-Key", "Content-Type"],
-    )
 
     app.include_router(health.router, tags=["health"])
     app.include_router(jobs.router, prefix="/jobs", tags=["jobs"])

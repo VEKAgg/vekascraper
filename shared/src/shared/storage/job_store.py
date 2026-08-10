@@ -73,7 +73,7 @@ class JobStore:
     def claim_next(self, worker_type: str) -> Job | None:
         jobs = self.list_by_state(JobState.QUEUED)
         for job in jobs:
-            if job.type.value == worker_type or (job.type == JobType.BOTH and worker_type in ("messages", "members")):
+            if job.type.value == worker_type:
                 job.transition(JobState.RUNNING)
                 self._write(job)
                 return job

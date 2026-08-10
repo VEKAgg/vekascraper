@@ -11,6 +11,7 @@ exclude = ["data/", ".venv/"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["UP017", "UP042"]
 
 [tool.ruff.format]
 quote-style = "double"

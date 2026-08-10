@@ -52,7 +52,6 @@ def test_create_member_job(client: TestClient, auth_headers: dict[str, str]) -> 
 
 def test_create_both_job(client: TestClient, auth_headers: dict[str, str]) -> None:
     resp = client.post("/jobs/both", json={
-        "type": "both",
         "guild_id": "guild_3",
     }, headers=auth_headers)
     assert resp.status_code == 200
@@ -64,7 +63,6 @@ def test_create_both_job(client: TestClient, auth_headers: dict[str, str]) -> No
 
 def test_create_both_order(client: TestClient, auth_headers: dict[str, str]) -> None:
     resp = client.post("/jobs/both", json={
-        "type": "both",
         "guild_id": "guild_order",
     }, headers=auth_headers)
     assert resp.status_code == 200

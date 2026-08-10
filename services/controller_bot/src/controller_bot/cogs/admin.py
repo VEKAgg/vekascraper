@@ -9,19 +9,29 @@ from discord.ext import commands
 
 logger = logging.getLogger(__name__)
 
-
-def _api_url(config: BotConfig, path: str) -> str:
-    return f"{config.export_api_url.rstrip('/')}{path}"
-
-
-def _headers(config: BotConfig) -> dict[str, str]:
-    return {"X-API-Key": config.api_key, "Content-Type": "application/json"}
+STATE_EMOJI: dict[str, str] = {
+    "QUEUED": "\U0001f7e1",
+    "RUNNING": "\U0001f7e2",
+    "CANCELLING": "\U0001f7e0",
+    "COMPLETED": "\u2705",
+    "FAILED": "\u274c",
+    "CANCELLED": "\u2b1b",
+    "CREATED": "\u2b1c",
+}
 
 
 class AdminCog(commands.Cog):
     def __init__(self, bot: commands.Bot, config: BotConfig) -> None:
         self.bot = bot
         self.config = config
+        self._client = httpx.AsyncClient(
+            base_url=config.export_api_url.rstrip("/"),
+            headers={"X-API-Key": config.api_key, "Content-Type": "application/json"},
+            timeout=10.0,
+        )
+
+    async def cog_unload(self) -> None:
+        await self._client.aclose()
 
     def _check_admin(self, user_id: int) -> bool:
         return str(user_id) in self.config.admin_user_ids
@@ -35,13 +45,7 @@ class AdminCog(commands.Cog):
             return
 
         payload = {"type": endpoint, "guild_id": guild_id}
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                _api_url(self.config, f"/jobs/{endpoint}"),
-                json=payload,
-                headers=_headers(self.config),
-                timeout=10,
-            )
+        resp = await self._client.post(f"/jobs/{endpoint}", json=payload)
 
         if resp.is_success:
             data = resp.json()
@@ -119,12 +123,7 @@ class AdminCog(commands.Cog):
             )
             return
 
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(
-                _api_url(self.config, "/jobs"),
-                headers=_headers(self.config),
-                timeout=10,
-            )
+        resp = await self._client.get("/jobs")
 
         if resp.is_success:
             data = resp.json()
@@ -135,9 +134,14 @@ class AdminCog(commands.Cog):
                 )
                 return
 
+            jobs.sort(key=lambda j: j.get("created_at", ""), reverse=True)
+
             lines = []
-            for j in jobs[:10]:
-                lines.append(f"`{j['job_id']}` — {j['type']} — {j['state']}")
+            for j in jobs[:15]:
+                emoji = STATE_EMOJI.get(j["state"], "")
+                lines.append(
+                    f"{emoji} `{j['job_id']}` \u2014 {j['type']} \u2014 {j['state']}"
+                )
             await interaction.response.send_message(
                 "\n".join(lines), ephemeral=True
             )
@@ -161,12 +165,7 @@ class AdminCog(commands.Cog):
             )
             return
 
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                _api_url(self.config, f"/jobs/{job_id}/cancel"),
-                headers=_headers(self.config),
-                timeout=10,
-            )
+        resp = await self._client.post(f"/jobs/{job_id}/cancel")
 
         if resp.is_success:
             data = resp.json()
