@@ -88,6 +88,7 @@ All items below are **actionable instructions for the next coding agent**. Addre
 | FIX-1 | ✅ Done | `jobs.py` — `/both` order: MESSAGES first, MEMBERS second |
 | FIX-4 | ✅ Done | `jobs.py` — second job stays CREATED |
 | FIX-BUG5 | ✅ Done | `dependencies.py` — `hmac.compare_digest` for constant-time API key check |
+| FIX-REL1 | ✅ Done | Both `config.py` — `DISCORD_USER_TOKEN` required at startup, no empty default |
 | FIX-REL2 | ✅ Done | `job.py` — removed dead `JobType.BOTH` variant |
 | FIX-REL4 | ✅ Done | Both `worker.py` — narrow exception catch (`KeyboardInterrupt` re-raised) |
 | FIX-REL5 | ✅ Done | Both `worker.py` — `_execute_job` and helpers typed as `Job`, not `object` |
@@ -143,7 +144,7 @@ All services share one `.env` file in `compose.yaml`, so every service has acces
 | 1 | FIX-1 | `jobs.py` — swap chain order | 2 lines | ✅ Done |
 | 2 | FIX-4 | `jobs.py` — remove `_queue_job` on second job | 1 line | ✅ Done |
 | 3 | FIX-BUG5 | `dependencies.py` — `hmac.compare_digest` | 3 lines | ✅ Done |
-| 4 | FIX-REL1 | `member_worker/config.py` — remove empty default | 1 line | ⬜ Pending |
+| 4 | FIX-REL1 | `member_worker/config.py` — remove empty default | 1 line | ✅ Done |
 | 5 | FIX-DQ5 | `bot.py` — warn on empty admin list | 3 lines | ✅ Done |
 | 6 | FIX-DQ8 | `admin.py` — shared `httpx.AsyncClient` | ~20 lines | ✅ Done |
 | 7 | FIX-DQ2 | `job.py` — frozenset transitions | ~15 lines | ✅ Done |
