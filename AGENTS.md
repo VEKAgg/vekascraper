@@ -1,4 +1,152 @@
-# AGENTS.md — Instructions for coding agents
+# AGENTS.md — VEKAScraper
+
+> Archival microservice for Discord: API (FastAPI), controller-bot (discord.py), extraction workers. Package management via `uv`.
+
+---
+
+## Session Protocol (read first — every session)
+
+1. **Read** this AGENTS.md fully before touching any code.
+2. **Do** the current task.
+3. **Update** this AGENTS.md (Issue Tracker, decisions, gotchas) whenever context changes.
+4. **Verify** quality gates → **commit + push** — one clean commit per task.
+5. **Log** one line to the Bedrock vault journal: `C:\Users\Shafaat\Documents\Bedrock\60 Journal\<YYYY-MM-DD>.md` (create the file if missing).
+
+---
+
+## Agent Workflow (MANDATORY)
+
+Every coding session must follow this loop for each task:
+
+1. **Write the code** for the current task / step.
+2. **Audit** — run quality gates. Fix any errors or warnings.
+3. **Commit** — stage changes and commit with a descriptive message.
+4. **Push** — push the commit.
+5. **Move on** — only start the next task after the current one is linted, tested, committed, and pushed.
+
+**Never batch multiple tasks into one commit. Each completed task = one clean commit.**
+
+---
+
+## Quality Gates (run before every push)
+
+```bash
+ruff check . --fix && ruff format .
+mypy src/ --ignore-missing-imports
+uv run pytest tests/ -v
+pre-commit run --all-files
+```
+
+| Gate | Command | Must pass |
+|------|---------|-----------|
+| Lint | `ruff check . --fix` | Yes |
+| Format | `ruff format .` | Yes |
+| Typecheck | `mypy src/ --ignore-missing-imports` | Yes |
+| Tests | `uv run pytest tests/ -v` | Yes (when tests exist) |
+| Pre-commit | `pre-commit run --all-files` | Yes |
+
+---
+
+## Git History Audit (First Session Only)
+
+On your first session with this project, run through the git log and populate the Issue Tracker and Locked Design Decisions sections above with historical context:
+
+```bash
+git log --oneline -50          # recent commits
+git log --all --oneline -100   # all branches
+git log --grep="fix" --oneline # bug fix history
+git log --grep="breaking" --oneline # breaking changes
+```
+
+- Add past bugs/fixes to the Issue Tracker (status: Done)
+- Add confirmed decisions to Locked Design Decisions (with dates)
+- Note any patterns of recurring issues
+- This gives future agents full context without re-auditing
+
+---
+
+## Issue Tracker
+
+Track all known issues, bugs, and technical debt here. Use consistent IDs.
+
+### Format
+
+| ID | Severity | Status | File | Description |
+|----|----------|--------|------|-------------|
+| FIX-001 | CRITICAL | ✅ Done | `src/worker/tasks.py:42` | One-line problem description |
+| FIX-002 | HIGH | ⬜ Open | `src/api/main.py:15` | One-line problem description |
+| GAP-001 | MEDIUM | ⬜ Deferred | — | Missing feature or capability |
+
+### Severity Levels
+
+- **CRITICAL**: Correctness bugs, data loss, security vulnerabilities, crashes
+- **HIGH**: Logic errors, race conditions, broken functionality
+- **MEDIUM**: Code quality, dead code, missing error handling
+- **LOW**: Style, naming, documentation gaps
+
+### Status Values
+
+- `✅ Done` — Fixed in a previous session
+- `⬜ Open` — Needs to be fixed
+- `⬜ Deferred` — Known but deferred to a future session (v2, post-launch, etc.)
+
+### Open Issues & Architectural Gaps
+
+| ID | Severity | Status | File | Description |
+|----|----------|--------|------|-------------|
+| FIX-BUG2 | HIGH | ⬜ Deferred | `shared/src/shared/storage/job_store.py` | Upgrade `claim_next()` to atomic POSIX directory move (`queued/` -> `processing/`) |
+| GAP-001 | MEDIUM | ⬜ Open | `services/export_api/` | Add optional `DiscordBot` audit log archiving hook for moderator review exports |
+| GAP-002 | MEDIUM | ⬜ Deferred | `compose.yaml` | Split into per-service env files (`.env.bot`, `.env.api`, `.env.worker`) for token isolation |
+
+### Completed Fixes
+
+| ID | Status | File |
+|----|--------|------|
+| FIX-1 through FIX-DQ8 | ✅ Done | See "Known gaps, bugs & required fixes" below for full audit history |
+
+---
+
+## Locked Design Decisions
+
+Decisions confirmed by the owner. **Do not deviate without explicit instruction.**
+
+| Decision | Chosen | Date |
+|----------|--------|------|
+| Bot/Discord separation | Controller-bot (discord.py) for API routing only. Extraction in workers | 2026-01-15 |
+| Token split | Bot uses `DISCORD_BOT_TOKEN`, workers use `DISCORD_USER_TOKEN` | 2026-01-15 |
+| API auth | `X-API-Key` header only. `/health` is sole unauthenticated endpoint | 2026-01-15 |
+| File-backed v1 | No database, no message broker. `/data/` filesystem is source of truth | 2026-01-15 |
+| Copycord | Future failover only. Do not implement. Leave commented compose entries | 2026-01-15 |
+| Secrets | All in env vars. Fail fast at startup if required var is missing | 2026-01-15 |
+| Discord rate limits | Strict: max 1 embed per target per 5 min, max 1000 msg/day across all targets | 2026-01-15 |
+| Channel whitelist | Every Discord channel target must be whitelisted before API will process it | 2026-01-15 |
+| Resumability | All operations must be resumable on restart | 2026-01-15 |
+
+---
+
+## File Modification Restriction
+
+- **Always edit**: `AGENTS.md`, `README.md` — these are agent-maintained files.
+- **Edit with caution**: Python source files — only when executing a specific task or fix.
+- **Never edit**: `.env`, `docker-compose.yml`, `pyproject.toml` unless explicitly instructed.
+- **Document all changes**: Note exact files modified and what was changed in commit messages.
+
+---
+
+## Pre-Submit Checklist
+
+Before finishing any task, verify:
+
+- [ ] `ruff check .` — no new lint errors
+- [ ] `ruff format --check .` — formatting passes
+- [ ] `mypy src/` — no new type errors
+- [ ] `uv run pytest tests/ -v` — all tests pass
+- [ ] `pre-commit run --all-files` — all hooks pass
+- [ ] AGENTS.md Issue Tracker updated if new issues found
+- [ ] `.env.example` updated if new env var added
+- [ ] AGENTS.md is still accurate
+
+---
 
 ## Architecture constraints
 
@@ -50,28 +198,6 @@ All services need `.env` (see `.env.example`). Commands in `CONTRIBUTING.md` (`r
 - Ruff: line-length=100, double quotes
 - Mypy: strict mode
 - Logging with `import logging` (no structlog used yet)
-
-## Agent workflow — audit, fix, commit, repeat
-
-Every coding session must follow this loop for each task:
-
-1. **Write the code** for the current task / step.
-2. **Audit** — run `make lint`, `make typecheck`, `make test`. Fix any errors or warnings.
-3. **Commit** — stage changes and commit with a descriptive message (e.g. `fix: swap both job creation order` or `feat: add message_worker service`).
-4. **Push** — push the commit.
-5. **Move on** — only start the next task after the current one is linted, tested, committed, and pushed.
-
-Never batch multiple tasks into one commit. Each completed task = one clean commit.
-
-## Pre-submit checklist
-
-- [ ] `make lint` — no new ruff errors
-- [ ] `make typecheck` — no new mypy errors
-- [ ] `make test` — all tests pass (write tests for new code)
-- [ ] Docs updated if endpoints, commands, or architecture changed
-- [ ] `compose.yaml` updated if new service added
-- [ ] `.env.example` updated if new env var added
-- [ ] AGENTS.md is still accurate
 
 ---
 
